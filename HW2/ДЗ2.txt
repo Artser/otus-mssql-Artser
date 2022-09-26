@@ -59,11 +59,20 @@ WHERE orders.SupplierID IS NULL
 Таблицы: Sales.Orders, Sales.OrderLines, Sales.Customers.
 */
 
-SELECT OrderID,OrderDate,MONTHNAME (OrderDate) as month,quarter(OrderDate) as quarter, DATEPART(MONTHHNAME, startDate, endDate) AS 'third', Customer
-FROM Sales.Orders, Sales.OrderLines, Sales.Customers
-WHERE UnitPrice > 100 OR Quantity > 20
-ORDER BY OrderDate,
-OFFSET 1000 ROWS FETCH FIRST 100 ROWS ONLY
+
+	 SELECT orders.orderid, format(orders.OrderDate, 'dd.MM.yyyy') as date,
+                DATENAME(month, orders.OrderDate) as Month,
+	        DATEPART(quarter, orders.OrderDate) as Quarter,
+		((DATEPART(month, orders.OrderDate)-1)/4 +1) as Third,
+	        sales.Description,
+		sales.UnitPrice,
+		sales.Quantity,
+	        sales.OrderLineID
+	 FROM Sales.Orders as orders
+		LEFT JOIN Sales.OrderLines as sales ON sales.OrderID = orders.OrderID
+	 WHERE sales.UnitPrice > 100 OR (sales.Quantity > 20 and sales.PickingCompletedWhen is not null)
+	 ORDER BY Quarter, Third, orders.OrderDate 
+	 OFFSET 1000 ROWS FETCH NEXT 100 ROWS ONLY
 
 
 /*
