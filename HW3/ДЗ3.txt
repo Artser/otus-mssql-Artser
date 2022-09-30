@@ -1,0 +1,125 @@
+/*
+Домашнее задание по курсу MS SQL Server Developer в OTUS.
+Занятие "02 - Оператор SELECT и простые фильтры, GROUP BY, HAVING".
+
+Задания выполняются с использованием базы данных WideWorldImporters.
+
+Бэкап БД можно скачать отсюда:
+https://github.com/Microsoft/sql-server-samples/releases/tag/wide-world-importers-v1.0
+Нужен WideWorldImporters-Full.bak
+
+Описание WideWorldImporters от Microsoft:
+* https://docs.microsoft.com/ru-ru/sql/samples/wide-world-importers-what-is
+* https://docs.microsoft.com/ru-ru/sql/samples/wide-world-importers-oltp-database-catalog
+*/
+
+-- ---------------------------------------------------------------------------
+-- Задание - написать выборки для получения указанных ниже данных.
+-- ---------------------------------------------------------------------------
+
+USE WideWorldImporters
+
+/*
+1. Посчитать среднюю цену товара, общую сумму продажи по месяцам.
+Вывести:
+* Год продажи (например, 2015)
+* Месяц продажи (например, 4)
+* Средняя цена за месяц по всем товарам
+* Общая сумма продаж за месяц
+
+Продажи смотреть в таблице Sales.Invoices и связанных таблицах.
+*/
+
+SELECT YEAR(i.InvoiceDate) as year,
+      MONTH(i.InvoiceDate) as month,
+      AVG(l.UnitPrice) as [Средняя цена товара],
+      SUM(l.Quantity * l.UnitPrice) as [сумма продаж] 
+FROM Sales.Invoices i
+LEFT JOIN Sales.InvoiceLines l on l.InvoiceID = i.InvoiceID
+GROUP BY YEAR(i.InvoiceDate), MONTH(i.InvoiceDate)
+ORDER BY year, month 
+
+/*
+2. Отобразить все месяцы, где общая сумма продаж превысила 4 600 000
+
+Вывести:
+* Год продажи (например, 2015)
+* Месяц продажи (например, 4)
+* Общая сумма продаж
+
+Продажи смотреть в таблице Sales.Invoices и связанных таблицах.
+*/
+SELECT YEAR(i.InvoiceDate) as year,
+      MONTH(i.InvoiceDate) as month,
+      SUM(l.Quantity * l.UnitPrice) as [Total]
+FROM Sales.Invoices i
+LEFT JOIN Sales.InvoiceLines l on l.InvoiceID = i.InvoiceID
+GROUP BY YEAR(i.InvoiceDate), MONTH(i.InvoiceDate)
+HAVING SUM(l.Quantity * l.UnitPrice) > 4600000
+ORDER BY year DESC, month DESC  
+
+
+/*
+3. Вывести сумму продаж, дату первой продажи
+и количество проданного по месяцам, по товарам,
+продажи которых менее 50 ед в месяц.
+Группировка должна быть по году,  месяцу, товару.
+
+Вывести:
+* Год продажи
+* Месяц продажи
+* Наименование товара
+* Сумма продаж
+* Дата первой продажи
+* Количество проданного
+
+Продажи смотреть в таблице Sales.Invoices и связанных таблицах.
+*/
+select year(so.OrderDate) as year, 
+      month(so.OrderDate) as month,
+	  sol.Description,
+ sum(sol.PickedQuantity * sol.UnitPrice) as Total,
+ si.InvoiceDate,
+sol.PickedQuantity
+from sales.Invoices si
+join sales.Orders so on si.OrderID = so.OrderID
+join sales.OrderLines sol on sol.OrderID = si.OrderID
+group by year(so.OrderDate), month(so.OrderDate), 
+sol.Description, sol.PickedQuantity, si.InvoiceDate
+having sum(sol.PickedQuantity * sol.UnitPrice) < 50
+
+
+-- ---------------------------------------------------------------------------
+-- Опционально
+-- ---------------------------------------------------------------------------
+/*
+Написать запросы 2-3 так, чтобы если в каком-то месяце не было продаж,
+то этот месяц также отображался бы в результатах, но там были нули.
+*/
+With Sales.InvoiceLines as
+(
+SELECT YEAR(i.InvoiceDate) as year_
+      ,MONTH(i.InvoiceDate) as month_
+      ,SUM(i1.Quantity * i1.UnitPrice) as [Total]
+)
+select isnull(SUM(i1.Quantity * i1.UnitPrice),0) as Sales
+FROM Sales.Invoices i
+LEFT JOIN Sales.InvoiceLines i1 on i1.InvoiceID = i.InvoiceID
+GROUP BY YEAR(i.InvoiceDate), MONTH(i.InvoiceDate)
+HAVING SUM(i1.Quantity * i1.UnitPrice) > 4600000
+ORDER BY year_ DESC, month_ DESC  
+
+
+или 
+
+SELECT YEAR(i.InvoiceDate) as year,
+      MONTH(i.InvoiceDate) as month,
+      SUM(l.Quantity * l.UnitPrice) as [Total],
+coalesce(Total), 0)
+FROM Sales.Invoices i
+LEFT JOIN Sales.InvoiceLines l on l.InvoiceID = i.InvoiceID
+GROUP BY YEAR(i.InvoiceDate), MONTH(i.InvoiceDate)
+HAVING SUM(l.Quantity * l.UnitPrice) > 4600000
+ORDER BY year DESC, month DESC  
+
+напишите здесь свое решение
