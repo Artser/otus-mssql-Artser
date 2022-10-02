@@ -75,18 +75,18 @@ ORDER BY year DESC, month DESC
 
 Продажи смотреть в таблице Sales.Invoices и связанных таблицах.
 */
-select year(so.OrderDate) as year, 
-      month(so.OrderDate) as month,
-	  sol.Description,
- sum(sol.PickedQuantity * sol.UnitPrice) as Total,
- si.InvoiceDate,
-sol.PickedQuantity
+select year(so.OrderDate) as year,
+month(so.OrderDate) as month,
+sol.Description,
+MIN(si.InvoiceDate) AS FirstSaleDate,
+sum(sol.Quantity * sol.UnitPrice) as Total,
+sum(sol.Quantity) as Quantity
 from sales.Invoices si
 join sales.Orders so on si.OrderID = so.OrderID
 join sales.OrderLines sol on sol.OrderID = si.OrderID
-group by year(so.OrderDate), month(so.OrderDate), 
-sol.Description, sol.PickedQuantity, si.InvoiceDate
-having sum(sol.PickedQuantity * sol.UnitPrice) < 50
+group by year(so.OrderDate), month(so.OrderDate),
+sol.Description,sol.Quantity
+having SUM (sol.Quantity) < 50
 
 
 -- ---------------------------------------------------------------------------
@@ -123,3 +123,24 @@ HAVING SUM(l.Quantity * l.UnitPrice) > 4600000
 ORDER BY year DESC, month DESC  
 
 напишите здесь свое решение
+
+
+select YEAR(InvoiceDate) as 'Год продажи'
+,MONTH(InvoiceDate) as 'Месяц продажи'
+,isnull(SUM(Quantity*UnitPrice),0) as 'Общая сумма продаж' --не совсем ясно, месяца не будет в списке или колонка будет null?
+from Sales.Invoices si
+join Sales.InvoiceLines sil on sil.InvoiceID = si.InvoiceID
+group by YEAR(InvoiceDate),MONTH(InvoiceDate)
+having SUM(Quantity*UnitPrice) >4600000
+order by YEAR(InvoiceDate),MONTH(InvoiceDate)
+
+
+SELECT YEAR(i.InvoiceDate) as year,
+      MONTH(i.InvoiceDate) as month,
+isnull(SUM(l.Quantity*l.UnitPrice),0) as [Total]
+      
+FROM Sales.Invoices i
+LEFT JOIN Sales.InvoiceLines l on l.InvoiceID = i.InvoiceID
+GROUP BY YEAR(i.InvoiceDate), MONTH(i.InvoiceDate)
+HAVING SUM(l.Quantity * l.UnitPrice) > 4600000
+ORDER BY year DESC, month DESC 
