@@ -1,0 +1,131 @@
+/*
+Домашнее задание по курсу MS SQL Server Developer в OTUS.
+
+Занятие "05 - Операторы CROSS APPLY, PIVOT, UNPIVOT".
+
+Задания выполняются с использованием базы данных WideWorldImporters.
+
+Бэкап БД можно скачать отсюда:
+https://github.com/Microsoft/sql-server-samples/releases/tag/wide-world-importers-v1.0
+Нужен WideWorldImporters-Full.bak
+
+Описание WideWorldImporters от Microsoft:
+* https://docs.microsoft.com/ru-ru/sql/samples/wide-world-importers-what-is
+* https://docs.microsoft.com/ru-ru/sql/samples/wide-world-importers-oltp-database-catalog
+*/
+
+-- ---------------------------------------------------------------------------
+-- Задание - написать выборки для получения указанных ниже данных.
+-- ---------------------------------------------------------------------------
+
+USE WideWorldImporters
+
+/*
+1. Требуется написать запрос, который в результате своего выполнения 
+формирует сводку по количеству покупок в разрезе клиентов и месяцев.
+В строках должны быть месяцы (дата начала месяца), в столбцах - клиенты.
+
+Клиентов взять с ID 2-6, это все подразделение Tailspin Toys.
+Имя клиента нужно поменять так чтобы осталось только уточнение.
+Например, исходное значение "Tailspin Toys (Gasport, NY)" - вы выводите только "Gasport, NY".
+Дата должна иметь формат dd.mm.yyyy, например, 25.12.2019.
+
+Пример, как должны выглядеть результаты:
+-------------+--------------------+--------------------+-------------+--------------+------------
+InvoiceMonth | Peeples Valley, AZ | Medicine Lodge, KS | Gasport, NY | Sylvanite, MT | Jessie, ND
+-------------+--------------------+--------------------+-------------+--------------+------------
+01.01.2013   |      3             |        1           |      4      |      2        |     2
+01.02.2013   |      7             |        3           |      4      |      2        |     1
+-------------+--------------------+--------------------+-------------+--------------+------------
+*/
+
+;WITH tabID as (
+SELECT DATEFROMPARTS(YEAR(so.OrderDate), MONTH(so.OrderDate),1) as date, sc.CustomerName --получаю 1 число каждого месяца
+FROM [Sales].[Orders] so
+INNER JOIN Sales.Customers sc ON sc.CustomerID = so.CustomerID
+WHERE so.CustomerID BETWEEN 2 AND 6
+)
+SELECT CONVERT(nvarchar(10),date,104) as InvoiceMonth, -- конвертирую (преобразую) дату в стандартный вид
+[Tailspin Toys (Peeples Valley, AZ)] as 'Peeples Valley, AZ',
+[Tailspin Toys (Medicine Lodge, KS)] as 'Medicine Lodge, KS',
+[Tailspin Toys (Gasport, NY)] as 'Gasport, NY', 
+[Tailspin Toys (Sylvanite, MT)] as 'Sylvanite, MT',
+[Tailspin Toys (Jessie, ND)] as 'Jessie, ND'
+FROM tabID PIVOT (COUNT(CustomerName) FOR CustomerName IN (
+[Tailspin Toys (Peeples Valley, AZ)],
+[Tailspin Toys (Medicine Lodge, KS)],
+[Tailspin Toys (Gasport, NY)], 
+[Tailspin Toys (Sylvanite, MT)],
+[Tailspin Toys (Jessie, ND)])
+)as PivotTab
+ORDER BY date
+
+ВОПРОС: сначала писала код ниже но НЕ смогла получить на 1 число КАЖДОГО месяца
+SELECT *
+FROM(
+		SELECT SUBSTRING(c.CustomerName, 16,LEN(c.CustomerName)-16) AS CustomerName, FORMAT(i.InvoiceDate,'dd.MM.yyyy') AS InvoiceMonth, il.InvoiceID
+		FROM Sales.Customers c
+		JOIN Sales.Invoices i ON c.CustomerID = i.CustomerID
+		JOIN Sales.InvoiceLines il ON i.InvoiceID = il.InvoiceID
+		WHERE c.CustomerID between 2 and 6
+	) AS Customer
+PIVOT(count(InvoiceID)
+	FOR CustomerName IN ([Peeples Valley, AZ], [Medicine Lodge, KS], [Gasport, NY], [Sylvanite, MT],[Jessie, ND])) AS  PVT
+ORDER BY YEAR(PVT.InvoiceMonth), DAY(PVT.InvoiceMonth), MONTH(PVT.InvoiceMonth)
+
+/*
+2. Для всех клиентов с именем, в котором есть "Tailspin Toys"
+вывести все адреса, которые есть в таблице, в одной колонке.
+
+Пример результата:
+----------------------------+--------------------
+CustomerName                | AddressLine
+----------------------------+--------------------
+Tailspin Toys (Head Office) | Shop 38
+Tailspin Toys (Head Office) | 1877 Mittal Road
+Tailspin Toys (Head Office) | PO Box 8975
+Tailspin Toys (Head Office) | Ribeiroville
+----------------------------+--------------------
+*/
+
+SELECT CustomerName, AddressLine,TypeAddress
+FROM (SELECT CustomerName, DeliveryAddressLine1, DeliveryAddressLine2, PostalAddressLine1,PostalAddressLine2
+FROM Sales.Customers
+WHERE CustomerName LIKE '%Tailspin Toys%') t 
+UNPIVOT (AddressLine FOR TypeAddress IN (DeliveryAddressLine1,DeliveryAddressLine2, PostalAddressLine1, PostalAddressLine2)) as unpvt 
+
+
+/*
+3. В таблице стран (Application.Countries) есть поля с цифровым кодом страны и с буквенным.
+Сделайте выборку ИД страны, названия и ее кода так, 
+чтобы в поле с кодом был либо цифровой либо буквенный код.
+
+Пример результата:
+--------------------------------
+CountryId | CountryName | Code
+----------+-------------+-------
+1         | Afghanistan | AFG
+1         | Afghanistan | 4
+3         | Albania     | ALB
+3         | Albania     | 8
+----------+-------------+-------
+*/
+SELECT * FROM (
+SELECT CountryID,CountryName, CAST(IsoAlpha3Code as varchar) as IsoAlpha3Code, CAST (IsoNumericCode as varchar) as IsoNumericCode
+FROM Application.Countries) as dt
+UNPIVOT (Code FOR TypeCode IN (IsoAlpha3Code,IsoNumericCode)) as unpvt 
+
+/*
+4. Выберите по каждому клиенту два самых дорогих товара, которые он покупал.
+В результатах должно быть ид клиета, его название, ид товара, цена, дата покупки.
+*/
+
+WITH tabCTE as (SELECT si.CustomerID, sil.StockItemID, sil.UnitPrice, si.InvoiceDate
+FROM  [Sales].[Invoices] si
+INNER JOIN [Sales].[InvoiceLines] sil ON sil.InvoiceID = si.InvoiceID)
+SELECT sc.CustomerID, sc.CustomerName, tab2.StockItemID, tab2.UnitPrice, tab2.InvoiceDate
+FROM [Sales].[Customers] sc
+CROSS APPLY (SELECT top 2 * FROM tabCTE
+WHERE tabCTE.CustomerID = sc.CustomerID
+ORDER BY tabCTE.UnitPrice DESC) tab2
+ORDER BY sc.CustomerName
