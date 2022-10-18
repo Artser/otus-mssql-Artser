@@ -42,14 +42,15 @@ InvoiceMonth | Aakriti Byrraju    | Abel Spirlea       | Abel Tatarescu | ... (�
 */
 
 
+
 DECLARE @pvt as NVARCHAR(MAX)           --объявляем переменную для запроса
 DECLARE @ColumnName AS NVARCHAR(MAX) --объявляю переменную для строки колонок 
 SELECT @ColumnName = ISNULL(@ColumnName + ',','') + '[' + sc.CustomerName + ']' --колонки для pivot через ','
 FROM (SELECT DISTINCT sc.CustomerName FROM [Sales].[Customers] sc) as sc
-select @ColumnName
+--select @ColumnName
 
 --инициализ. переменную @pvt - это  наш запрос и передаем в запросе переменную @ColumnName вместо вручную перечисляения столбцов
-set @pvt= N' SELECT InvoiceMonth,  '+ @ColumnName +'WITH tabID as (
+set @pvt= N' WITH tabID as (
 SELECT DATEFROMPARTS(YEAR(so.OrderDate), MONTH(so.OrderDate),1) as date, sc.CustomerName --получаю 1 число каждого месяца
 FROM [Sales].[Orders] so
 INNER JOIN Sales.Customers sc ON sc.CustomerID = so.CustomerID
@@ -63,8 +64,6 @@ FROM tabID PIVOT (COUNT(CustomerName) FOR CustomerName IN (' + @ColumnName + '))
 select @pvt as pvt;   --выводим запрос, как будет выглядеть
 
 EXEC sp_executesql @pvt;
-
-
 
 
 
