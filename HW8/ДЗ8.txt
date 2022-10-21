@@ -1,9 +1,4 @@
-Для MERGE хочу создать ДВЕ своих таблицы и из ОДНОЙ в другую данные перекинуть
-select * into Sales.CustomersNew from Sales.Customers where 1 = 1 -- создаю таблицу
-	
-select * from Sales.CustomersNew; -- проверяю что создалось
-
-INSERT INTO Sales.CustomersNew(      -- пытаюсь добавить данные и ПОЛУЧАЮ ОШИБКУ!! ПРобовала измменять данные по-разному НИ В КАКУЮ ошибка и все тут
+INSERT INTO Sales.CustomersNew(CustomerID,
        [CustomerName]
       ,[BillToCustomerID]
       ,[CustomerCategoryID]
@@ -24,11 +19,69 @@ INSERT INTO Sales.CustomersNew(      -- пытаюсь добавить данн
       ,[PostalAddressLine1]
       ,[PostalPostalCode]
       ,[LastEditedBy]
+	  ,[ValidFrom]
 	  ,[ValidTo]
 )
 VALUES
-		('Test1', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31 23:59:59.9999999 ), 
-		('Test2', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31 0),
-		('Test3', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31), 
-		('Test4', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31), 
-		('Test5', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31)
+		(1020,'Test1', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, '2013-01-01 00:00:00.0000000', '9999-12-31 23:59:59.9999999' ), 
+		(1021,'Test2', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1,'2013-01-01 00:00:00.0000000', '9999-12-31'),
+		(1022,'Test3', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, '2013-01-01 00:00:00.0000000','9999-12-31'), 
+		(1023,'Test4', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, '2013-01-01 00:00:00.0000000','9999-12-31'), 
+		(1024,'Test5', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, '2013-01-01 00:00:00.0000000','9999-12-31')
+
+				--drop TABLE Sales.Customers1;
+
+		select * into Sales.Customers1 from Sales.Customers where 1 = 1
+		select * from Sales.Customers1;
+		select * from Sales.CustomersNew;
+		MERGE [Sales].[Customers1] AS target
+      USING Sales.CustomersNew AS source ON (target.CustomerID = source.CustomerID)
+WHEN MATCHED 
+      THEN UPDATE SET CustomerName = source.CustomerName,  DeliveryMethodId = source.DeliveryMethodId
+WHEN NOT MATCHED
+  THEN INSERT (CustomerID,
+       [CustomerName]
+      ,[BillToCustomerID]
+      ,[CustomerCategoryID]
+      ,[PrimaryContactPersonID]      
+      ,[DeliveryMethodID]
+      ,[DeliveryCityID]
+      ,[PostalCityID]
+      ,[AccountOpenedDate]
+      ,[StandardDiscountPercentage]
+      ,[IsStatementSent]
+      ,[IsOnCreditHold]
+      ,[PaymentDays]
+      ,[PhoneNumber]
+      ,[FaxNumber]
+      ,[WebsiteURL]
+      ,[DeliveryAddressLine1]      
+      ,[DeliveryPostalCode] 
+      ,[PostalAddressLine1]
+      ,[PostalPostalCode]
+      ,[LastEditedBy]
+	  ,[ValidFrom]
+	  ,[ValidTo])
+VALUES (source.CustomerID,
+       source.[CustomerName]
+      ,source.[BillToCustomerID]
+      ,source.[CustomerCategoryID]
+      ,source.[PrimaryContactPersonID]      
+      ,source.[DeliveryMethodID]
+      ,source.[DeliveryCityID]
+      ,source.[PostalCityID]
+      ,source.[AccountOpenedDate]
+      ,source.[StandardDiscountPercentage]
+      ,source.[IsStatementSent]
+      ,source.[IsOnCreditHold]
+      ,source.[PaymentDays]
+      ,source.[PhoneNumber]
+      ,source.[FaxNumber]
+      ,source.[WebsiteURL]
+      ,source.[DeliveryAddressLine1]      
+      ,source.[DeliveryPostalCode] 
+      ,source.[PostalAddressLine1]
+      ,source.[PostalPostalCode]
+      ,source.[LastEditedBy]
+      ,source.[ValidFrom]
+	  ,source.[ValidTo]);
