@@ -1,0 +1,34 @@
+Для MERGE хочу создать ДВЕ своих таблицы и из ОДНОЙ в другую данные перекинуть
+select * into Sales.CustomersNew from Sales.Customers where 1 = 1 -- создаю таблицу
+	
+select * from Sales.CustomersNew; -- проверяю что создалось
+
+INSERT INTO Sales.CustomersNew(      -- пытаюсь добавить данные и ПОЛУЧАЮ ОШИБКУ!! ПРобовала измменять данные по-разному НИ В КАКУЮ ошибка и все тут
+       [CustomerName]
+      ,[BillToCustomerID]
+      ,[CustomerCategoryID]
+      ,[PrimaryContactPersonID]      
+      ,[DeliveryMethodID]
+      ,[DeliveryCityID]
+      ,[PostalCityID]
+      ,[AccountOpenedDate]
+      ,[StandardDiscountPercentage]
+      ,[IsStatementSent]
+      ,[IsOnCreditHold]
+      ,[PaymentDays]
+      ,[PhoneNumber]
+      ,[FaxNumber]
+      ,[WebsiteURL]
+      ,[DeliveryAddressLine1]      
+      ,[DeliveryPostalCode] 
+      ,[PostalAddressLine1]
+      ,[PostalPostalCode]
+      ,[LastEditedBy]
+	  ,[ValidTo]
+)
+VALUES
+		('Test1', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31 23:59:59.9999999 ), 
+		('Test2', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31 0),
+		('Test3', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31), 
+		('Test4', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31), 
+		('Test5', 1, 3, 1001, 3, 19586, 19586, '20130101', 0, 0, 0, 7, '(308) 555-0100', '(308) 555-0100', 'http://www.tailspintoys.com', 'Shop 38', 90410, 'PO Box 8975', 90410, 1, 9999-12-31)
