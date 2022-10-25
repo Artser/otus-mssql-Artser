@@ -155,13 +155,14 @@ q.StockItems.value('(Package/TypicalWeightPerUnit)[1]','decimal(18,3)') as Typic
 q.StockItems.value('(LeadTimeDays)[1]','int') as LeadTimeDays,
 q.StockItems.value('(IsChillerStock)[1]', 'int') as IsChillerStock,
 q.StockItems.value('(TaxRate)[1]','decimal') as TaxRate,
-q.StockItems.value('(UnitPrice[1]','decimal') as UnitPrice
+q.StockItems.value('(UnitPrice)[1]','decimal') as UnitPrice
 FROM @xmlDocument2.nodes('/StockItems/Item') as q(StockItems)
-SELECT * FROM #tmp2_xml;
+SELECT * FROM #tmp2_xml
 MERGE Warehouse.StockItems as target
      USING #tmp2_xml as source ON (target.StockItemName collate Cyrillic_General_CI_AS = source.StockItemName collate Cyrillic_General_CI_AS)
      WHEN MATCHED
      THEN UPDATE SET 
+	 StockItemName = source.StockItemName,
                 SupplierID  =source.SupplierID,
                 UnitPackageID = source.UnitPackageID,
                 OuterPackageID = source.OuterPackageID,
@@ -173,7 +174,7 @@ MERGE Warehouse.StockItems as target
                 UnitPrice = source.UnitPrice
     WHEN NOT MATCHED
     THEN INSERT (StockItemName, SupplierID, UnitPackageID, OuterPackageID, QuantityPerOuter, TypicalWeightPerUnit, LeadTimeDays, IsChillerStock, TaxRate, UnitPrice)
-         VALUES  (source.StockItemName, source.SupplierID, source.UnitPackageID, source.OuterPackageID, source.QuantityPerOuter, source.TypicalWeightPerUnit, source.LeadTimeDays, source.IsChillerStock, source.TaxRate, source.UnitPrice,'1')
+         VALUES  (source.StockItemName, source.SupplierID, source.UnitPackageID, source.OuterPackageID, source.QuantityPerOuter, source.TypicalWeightPerUnit, source.LeadTimeDays, source.IsChillerStock, source.TaxRate, source.UnitPrice,1)
 OUTPUT deleted.*, $action, inserted.*
         ;
 
@@ -181,7 +182,25 @@ OUTPUT deleted.*, $action, inserted.*
 2. Выгрузить данные из таблицы StockItems в такой же xml-файл, как StockItems.xml
 */
 
-напишите здесь свое решение
+--Запрос выполняется но файла на компьюетере в указананном месте нет ИСКАЛА даже через проводник! А что не так ?
+
+DECLARE @dataQuery nvarchar(max) = '
+SELECT 
+    [StockItemName] as [@Name],
+	[SupplierID] as [SupplierID],
+	[UnitPackageID] as  [Package/UnitPackageID],
+	[OuterPackageID] as  [Package/OuterPackageID] , 
+	[QuantityPerOuter] as  [Package/QuantityPerOuter],
+	[TypicalWeightPerUnit] as  [Package/TypicalWeightPerUnit],
+	[LeadTimeDays] as [LeadTimeDays],
+	[IsChillerStock] as [IsChillerStock] ,
+	[TaxRate] as [TaxRate],
+	[UnitPrice] as [UnitPrice]
+FROM Warehouse.StockItems
+FOR XML PATH(''''Item''''), ROOT(''''StockItems'''');';
+DECLARE @bcpQuery nvarchar(max) = 'EXEC xp_cmdshell ''bcp "'+ @dataQuery + '"C:\Users\NEXT\Downloads\StockItems2.xml" -T -c -t''';
+EXEC sp_executesql @bcpQuery;
+
 
 
 /*
@@ -193,7 +212,11 @@ OUTPUT deleted.*, $action, inserted.*
 - FirstTag (из поля CustomFields, первое значение из массива Tags)
 */
 
-напишите здесь свое решение
+SELECT CustomFields,StockItemID, StockItemName,
+JSON_VALUE(CustomFields, '$.CountryOfManufacture') as CountryOfManufacture,
+JSON_VALUE(CustomFields, '$.Tags[0]') as FirstTag
+FROM Warehouse.StockItems
+
 
 /*
 4. Найти в StockItems строки, где есть тэг "Vintage".
@@ -214,5 +237,10 @@ OUTPUT deleted.*, $action, inserted.*
 ... where ... CustomFields like '%Vintage%' 
 */
 
+select CustomFields, StockItemID,  StockItemName,
+JSON_QUERY(CustomFields, '$.Tags') as AllTags, --массив тэгов
+Tags.value as value
+from Warehouse.StockItems
+CROSS APPLY OPENJSON(CustomFields, '$.Tags') Tags
+WHERE Tags.value = 'Vintage'
 
-напишите здесь свое решение
