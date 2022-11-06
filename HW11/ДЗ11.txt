@@ -1,0 +1,41 @@
+
+Начало проектной работы.
+Создание таблиц и представлений для своего проекта.
+Нужно написать операторы DDL для создания БД вашего проекта:
+1. Создать базу данных.
+2. 3-4 основные таблицы для своего проекта.
+3. Первичные и внешние ключи для всех созданных таблиц.
+4. 1-2 индекса на таблицы.
+5. Наложите по одному ограничению в каждой таблице на ввод данных.
+Обязательно (если еще нет) должно быть описание предметной области.
+
+CREATE DATABASE [otus_project]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'otus_project', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL15.MSSQLSERVER\MSSQL\DATA\otus_project.mdf' , SIZE = 8192KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'otus_project_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL15.MSSQLSERVER\MSSQL\DATA\otus_project_log.ldf' , SIZE = 8192KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+ WITH CATALOG_COLLATION = DATABASE_DEFAULT
+GO
+
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [otus_project].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+
+--таблица 
+ПокупателиCREATE TABLE customers(	id int not null identity(1, 1)  primary key,	fio varchar(255),	email varchar(255),	phone int,
+birth_date date);
+--Таблица товары CREATE TABLE sku(	sku_id int not null identity(1, 1)  primary key,
+       id_supplier int,	sku_name varchar(255),	price decimal(18,3),	collection_name varchar(255)	);
+--Таблица ЗаказыCREATE TABLE orders(	order_num 	int not null identity(1, 1)  primary key,	order_date datetime,	customer_id int,       cancel_reason_id int,	source_id int,
+       state varchar(255),	CONSTRAINT FK_customer_id FOREIGN KEY (customer_id)    REFERENCES customers(id));
+--Строка заказаCREATE TABLE order_rows(	order_num 	int identity(1, 1)  primary key,sku_id int);
+--Создание ограниченийALTER TABLE order_rows  ADD  CONSTRAINT FK_v_k FOREIGN KEY(order_num)
+REFERENCES orders (order_num)
+
+----Создание индексов 
+--Таблица Покупатели (customers)CREATE UNIQUE INDEX idx_id ON dbo.customers (id);CREATE UNIQUE INDEX idx_fio ON dbo.customers  (fio);
+--Таблица Заказы (orders)CREATE UNIQUE INDEX idx_orders ON dbo.orders (order_num, order_date);
+--Таблица Товары (sku)CREATE UNIQUE INDEX sku_name ON dbo.products (sku_name);
