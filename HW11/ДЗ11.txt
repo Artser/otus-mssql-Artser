@@ -1,13 +1,13 @@
 
-Начало проектной работы.
-Создание таблиц и представлений для своего проекта.
-Нужно написать операторы DDL для создания БД вашего проекта:
-1. Создать базу данных.
-2. 3-4 основные таблицы для своего проекта.
-3. Первичные и внешние ключи для всех созданных таблиц.
-4. 1-2 индекса на таблицы.
-5. Наложите по одному ограничению в каждой таблице на ввод данных.
-Обязательно (если еще нет) должно быть описание предметной области.
+РќР°С‡Р°Р»Рѕ РїСЂРѕРµРєС‚РЅРѕР№ СЂР°Р±РѕС‚С‹.
+РЎРѕР·РґР°РЅРёРµ С‚Р°Р±Р»РёС† Рё РїСЂРµРґСЃС‚Р°РІР»РµРЅРёР№ РґР»СЏ СЃРІРѕРµРіРѕ РїСЂРѕРµРєС‚Р°.
+РќСѓР¶РЅРѕ РЅР°РїРёСЃР°С‚СЊ РѕРїРµСЂР°С‚РѕСЂС‹ DDL РґР»СЏ СЃРѕР·РґР°РЅРёСЏ Р‘Р” РІР°С€РµРіРѕ РїСЂРѕРµРєС‚Р°:
+1. РЎРѕР·РґР°С‚СЊ Р±Р°Р·Сѓ РґР°РЅРЅС‹С….
+2. 3-4 РѕСЃРЅРѕРІРЅС‹Рµ С‚Р°Р±Р»РёС†С‹ РґР»СЏ СЃРІРѕРµРіРѕ РїСЂРѕРµРєС‚Р°.
+3. РџРµСЂРІРёС‡РЅС‹Рµ Рё РІРЅРµС€РЅРёРµ РєР»СЋС‡Рё РґР»СЏ РІСЃРµС… СЃРѕР·РґР°РЅРЅС‹С… С‚Р°Р±Р»РёС†.
+4. 1-2 РёРЅРґРµРєСЃР° РЅР° С‚Р°Р±Р»РёС†С‹.
+5. РќР°Р»РѕР¶РёС‚Рµ РїРѕ РѕРґРЅРѕРјСѓ РѕРіСЂР°РЅРёС‡РµРЅРёСЋ РІ РєР°Р¶РґРѕР№ С‚Р°Р±Р»РёС†Рµ РЅР° РІРІРѕРґ РґР°РЅРЅС‹С….
+РћР±СЏР·Р°С‚РµР»СЊРЅРѕ (РµСЃР»Рё РµС‰Рµ РЅРµС‚) РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РѕРїРёСЃР°РЅРёРµ РїСЂРµРґРјРµС‚РЅРѕР№ РѕР±Р»Р°СЃС‚Рё.
 
 CREATE DATABASE [otus_project]
  CONTAINMENT = NONE
@@ -24,15 +24,15 @@ EXEC [otus_project].[dbo].[sp_fulltext_database] @action = 'enable'
 end
 GO
 
---таблица 
-ПокупателиCREATE TABLE customers(	id int not null identity(1, 1)  primary key,	fio varchar(255),	email varchar(255),	phone int,
+--С‚Р°Р±Р»РёС†Р° 
+РџРѕРєСѓРїР°С‚РµР»РёCREATE TABLE customers(	id int not null identity(1, 1)  primary key,	fio varchar(255),	email varchar(255),	phone int,
 birth_date date);
---Таблица товары CREATE TABLE sku(	sku_id int not null identity(1, 1)  primary key,
+--РўР°Р±Р»РёС†Р° С‚РѕРІР°СЂС‹ CREATE TABLE sku(	sku_id int not null identity(1, 1)  primary key,
        id_supplier int,	sku_name varchar(255),	price decimal(18,3),	collection_name varchar(255)	);
---Таблица ЗаказыCREATE TABLE orders(	order_num 	int not null identity(1, 1)  primary key,	order_date datetime,	customer_id int,       cancel_reason_id int,	source_id int,
+--РўР°Р±Р»РёС†Р° Р—Р°РєР°Р·С‹CREATE TABLE orders(	order_num 	int not null identity(1, 1)  primary key,	order_date datetime,	customer_id int,       cancel_reason_id int,	source_id int,
        state varchar(255),	CONSTRAINT FK_customer_id FOREIGN KEY (customer_id)    REFERENCES customers(id));
---Строка заказаCREATE TABLE order_rows(	order_num 	int identity(1, 1)  primary key,sku_id int);
---Создание ограниченийALTER TABLE order_rows  ADD  CONSTRAINT FK_v_k FOREIGN KEY(order_num)
+--РЎС‚СЂРѕРєР° Р·Р°РєР°Р·Р°CREATE TABLE order_rows(	order_num 	int identity(1, 1)  primary key,sku_id int);
+--РЎРѕР·РґР°РЅРёРµ РѕРіСЂР°РЅРёС‡РµРЅРёР№ALTER TABLE order_rows  ADD  CONSTRAINT FK_v_k FOREIGN KEY(order_num)
 REFERENCES orders (order_num)
 ALTER TABLE customers  ADD  CONSTRAINT FK_customers FOREIGN KEY(id)
 REFERENCES customers (id)
@@ -41,7 +41,7 @@ ALTER TABLE sku  ADD  CONSTRAINT FK_sku FOREIGN KEY(sku_id)
 REFERENCES sku (sku_id)
 ALTER TABLE orders  ADD  CONSTRAINT FK_order_num FOREIGN KEY(order_num)
 REFERENCES orders (order_num)
-----Создание индексов 
---Таблица Покупатели (customers)CREATE UNIQUE INDEX idx_fio ON dbo.customers  (fio);
---Таблица Заказы (orders)CREATE UNIQUE INDEX idx_orders ON dbo.orders (order_num, order_date);
---Таблица Товары (sku)CREATE UNIQUE INDEX sku_name ON dbo.products (sku_name);
+----РЎРѕР·РґР°РЅРёРµ РёРЅРґРµРєСЃРѕРІ 
+--РўР°Р±Р»РёС†Р° РџРѕРєСѓРїР°С‚РµР»Рё (customers)CREATE UNIQUE INDEX idx_fio ON dbo.customers  (fio);
+--РўР°Р±Р»РёС†Р° Р—Р°РєР°Р·С‹ (orders)CREATE UNIQUE INDEX idx_orders ON dbo.orders (order_num, order_date);
+--РўР°Р±Р»РёС†Р° РўРѕРІР°СЂС‹ (sku)CREATE UNIQUE INDEX sku_name ON dbo.products (sku_name);
