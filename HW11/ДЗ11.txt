@@ -34,8 +34,14 @@ birth_date date);
 --Строка заказаCREATE TABLE order_rows(	order_num 	int identity(1, 1)  primary key,sku_id int);
 --Создание ограниченийALTER TABLE order_rows  ADD  CONSTRAINT FK_v_k FOREIGN KEY(order_num)
 REFERENCES orders (order_num)
-
+ALTER TABLE customers  ADD  CONSTRAINT FK_customers FOREIGN KEY(id)
+REFERENCES customers (id)
+
+ALTER TABLE sku  ADD  CONSTRAINT FK_sku FOREIGN KEY(sku_id)
+REFERENCES sku (sku_id)
+ALTER TABLE orders  ADD  CONSTRAINT FK_order_num FOREIGN KEY(order_num)
+REFERENCES orders (order_num)
 ----Создание индексов 
---Таблица Покупатели (customers)CREATE UNIQUE INDEX idx_id ON dbo.customers (id);CREATE UNIQUE INDEX idx_fio ON dbo.customers  (fio);
+--Таблица Покупатели (customers)CREATE UNIQUE INDEX idx_fio ON dbo.customers  (fio);
 --Таблица Заказы (orders)CREATE UNIQUE INDEX idx_orders ON dbo.orders (order_num, order_date);
 --Таблица Товары (sku)CREATE UNIQUE INDEX sku_name ON dbo.products (sku_name);
