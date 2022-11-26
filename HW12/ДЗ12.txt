@@ -1,0 +1,49 @@
+Во всех заданиях написать хранимую процедуру / функцию и продемонстрировать ее использование.
+
+1 Написать функцию возвращающую Клиента с наибольшей суммой покупки.
+
+CREATE FUNCTION GetCustomerWithBiggestSumOfPurchase2()
+    RETURNS INT
+    AS
+    BEGIN
+    DECLARE @CustomerID INT
+    SELECT @CustomerID = CustomerID FROM [Sales].[Invoices] inv 
+    JOIN (
+        SELECT TOP(1) InvoiceID, SUM(Quantity*UnitPrice) AS SumOfInvoice
+        FROM [Sales].[InvoiceLines]
+        GROUP BY InvoiceID
+        ORDER BY SumOfInvoice DESC) AS invLines ON inv.InvoiceID = invLines.InvoiceID
+    RETURN @CustomerID
+    END
+
+	
+	select GetCustomerWithBiggestSumOfPurchase2() as CustomerID; ---пытаюсь посмотреть результат, но возвращает ошибку. Поэтому вопрос как смотреть результаты?
+
+
+
+
+2 Написать хранимую процедуру с входящим параметром СustomerID, выводящую сумму покупки по этому клиенту.
+Использовать таблицы :
+Sales.Customers
+Sales.Invoices
+Sales.InvoiceLines
+
+
+CREATE PROCEDURE CB_PriceForCustomer
+(@CastCustomerID int)
+AS
+begin
+select SUM(ExtendedPrice) as suminv, cus.CustomerName from Sales.InvoiceLines invl with (nolock)
+		inner join Sales.Invoices inv on inv.InvoiceID = invl.InvoiceID
+		inner join Sales.Customers cus on cus.CustomerID = inv.CustomerID
+		where inv.CustomerID = @CastCustomerID
+		group by invl.InvoiceID,cus.CustomerName
+END;
+
+exec CB_PriceForCustomer @CastCustomerID = 10 --- здесь пытаюсь посмотреть результат, но выполнение запроса происходит бесконечно. вродедолжно работать что я делаю не так
+
+
+3 Создать одинаковую функцию и хранимую процедуру, посмотреть в чем разница в производительности и почему.
+
+4Создайте табличную функцию покажите как ее можно вызвать для каждой строки result set'а без использования цикла.
+Опционально. Во всех процедурах укажите какой уровень изоляции транзакций вы бы использовали и почему.
