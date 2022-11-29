@@ -17,7 +17,7 @@ CREATE FUNCTION GetCustomerWithBiggestSumOfPurchase2()
     END
 
 	
-	select GetCustomerWithBiggestSumOfPurchase2() as CustomerID; ---пытаюсь посмотреть результат, но возвращает ошибку. Поэтому вопрос как смотреть результаты?
+	select dbo.GetCustomerWithBiggestSumOfPurchase2() as CustomerID; ---пытаюсь посмотреть результат, но возвращает ошибку. Поэтому вопрос как смотреть результаты?
 
 
 
@@ -37,13 +37,76 @@ select SUM(ExtendedPrice) as suminv, cus.CustomerName from Sales.InvoiceLines in
 		inner join Sales.Invoices inv on inv.InvoiceID = invl.InvoiceID
 		inner join Sales.Customers cus on cus.CustomerID = inv.CustomerID
 		where inv.CustomerID = @CastCustomerID
-		group by invl.InvoiceID,cus.CustomerName
+		
 END;
 
 exec CB_PriceForCustomer @CastCustomerID = 10 --- здесь пытаюсь посмотреть результат, но выполнение запроса происходит бесконечно. вродедолжно работать что я делаю не так
 
 
 3 Создать одинаковую функцию и хранимую процедуру, посмотреть в чем разница в производительности и почему.
+CREATE OR ALTER PROCEDURE GetSumOfPurchase
+    @CustomerID INT
+AS
+BEGIN
+ SET NOCOUNT ON;  
+ WITH InvoicesByCustomer AS (
+     SELECT inv.CustomerID AS CustomerID
+     , inv.InvoiceID AS InvoiceID
+     , invLines.SumOfInvoice
+       FROM [Sales].[Invoices] inv
+  JOIN (
+	SELECT InvoiceID, SUM(Quantity*UnitPrice) AS SumOfInvoice
+    FROM [Sales].[InvoiceLines]
+    GROUP BY InvoiceID
+        ) AS invLines ON inv.InvoiceID = invLines.InvoiceID
+  WHERE CustomerID = @CustomerID
+ )
+ 
+ SELECT SUM(SumOfInvoice) AS SumOfPurchases
+  FROM InvoicesByCustomer
+  GROUP BY CustomerID
+END
+
+GO
+
+CREATE OR ALTER FUNCTION fGetSumOfPurchase(@CustomerID INT)
+RETURNS FLOAT
+AS
+BEGIN
+DECLARE @sum FLOAT;
+WITH InvoicesByCustomer AS (
+     SELECT inv.CustomerID AS CustomerID
+     , inv.InvoiceID AS InvoiceID
+     , invLines.SumOfInvoice
+       FROM [Sales].[Invoices] inv
+  JOIN (
+	SELECT InvoiceID, SUM(Quantity*UnitPrice) AS SumOfInvoice
+  FROM [Sales].[InvoiceLines]
+  GROUP BY InvoiceID
+  ) AS invLines ON inv.InvoiceID = invLines.InvoiceID
+  WHERE CustomerID = @CustomerID
+ )
+ SELECT @sum = SUM(SumOfInvoice)
+  FROM InvoicesByCustomer
+  GROUP BY CustomerID
+  RETURN @sum
+END
 
 4Создайте табличную функцию покажите как ее можно вызвать для каждой строки result set'а без использования цикла.
-Опционально. Во всех процедурах укажите какой уровень изоляции транзакций вы бы использовали и почему.
+
+Create function GetSumInvoiceByInvoiceID(@InvoiceID int)
+Returns Table
+as
+Return
+(
+Select distinct Sum(il.UnitPrice) OVER (Partition by i.InvoiceID) as 'SumUnitPrice'
+      ,i.InvoiceID as 'InvoiceID'
+  from Sales.Invoices i
+ inner join Sales.InvoiceLines il
+    on il.InvoiceID = i.InvoiceID
+);
+
+Select top 10 i.InvoiceDate
+      ,i.InvoiceID
+	  ,(Select f.SumUnitPrice from GetSumInvoiceByInvoiceID(i.InvoiceID) f where i.InvoiceID = f.InvoiceID) as 'SumUnitPrice'
+  from Sales.Invoices i
