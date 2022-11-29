@@ -1,0 +1,219 @@
+ALTER TABLE Sales.Invoices
+ADD InvoiceConfirmedForProcessing DATETIME;
+
+
+USE master
+ALTER DATABASE WideWorldImporters
+SET ENABLE_BROKER  WITH NO_WAIT; 
+
+ALTER DATABASE WideWorldImporters SET TRUSTWORTHY ON;
+
+ALTER AUTHORIZATION    
+   ON DATABASE::WideWorldImporters TO [sa];
+
+--2
+--Создание типов сообщений для запроса и ответного сообщения
+USE WideWorldImporters
+-- For Request
+CREATE MESSAGE TYPE
+[//WWI/SB/RequestMessage]
+VALIDATION=WELL_FORMED_XML;
+-- For Reply
+CREATE MESSAGE TYPE
+[//WWI/SB/ReplyMessage]
+VALIDATION=WELL_FORMED_XML; 
+
+GO
+
+CREATE CONTRACT [//WWI/SB/Contract]
+      ([//WWI/SB/RequestMessage]
+         SENT BY INITIATOR,
+       [//WWI/SB/ReplyMessage]
+         SENT BY TARGET
+      );
+GO
+--30
+CREATE QUEUE TargetQueueWWI;
+
+CREATE SERVICE [//WWI/SB/TargetService]
+       ON QUEUE TargetQueueWWI
+       ([//WWI/SB/Contract]);
+GO
+
+
+CREATE QUEUE InitiatorQueueWWI;
+
+CREATE SERVICE [//WWI/SB/InitiatorService]
+       ON QUEUE InitiatorQueueWWI
+       ([//WWI/SB/Contract]);
+GO
+
+
+
+--4 Создание процедуры (добавляем сообщение в очередь)
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE Sales.SendNewInvoice
+	@invoiceId INT
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+    --Отправка сообщения с запросом целевому объекту	
+	DECLARE @InitDlgHandle UNIQUEIDENTIFIER;
+	DECLARE @RequestMessage NVARCHAR(4000);
+	
+	BEGIN TRAN 
+
+	--Сообщение
+	SELECT @RequestMessage = (SELECT InvoiceID
+							  FROM Sales.Invoices AS Inv
+							  WHERE InvoiceID = @invoiceId
+							  FOR XML AUTO, root('RequestMessage')); 
+	
+	--Determine the Initiator Service, Target Service and the Contract 
+	BEGIN DIALOG @InitDlgHandle
+	FROM SERVICE
+	[//WWI/SB/InitiatorService]
+	TO SERVICE
+	'//WWI/SB/TargetService'
+	ON CONTRACT
+	[//WWI/SB/Contract]
+	WITH ENCRYPTION=OFF; 
+
+	--Отправляем сообщение
+	SEND ON CONVERSATION @InitDlgHandle 
+	MESSAGE TYPE
+	[//WWI/SB/RequestMessage]
+	(@RequestMessage);
+	SELECT @RequestMessage AS SentRequestMessage;
+	COMMIT TRAN 
+END
+GO
+
+
+--5 Завершение диалога(обработка сообщения)
+CREATE PROCEDURE Sales.GetNewInvoice
+AS
+BEGIN
+
+	DECLARE @TargetDlgHandle UNIQUEIDENTIFIER,
+			@Message NVARCHAR(4000),
+			@MessageType Sysname,
+			@ReplyMessage NVARCHAR(4000),
+			@ReplyMessageName Sysname,
+			@InvoiceID INT,
+			@xml XML; 
+	
+	BEGIN TRAN; 
+
+	--Получаем сообщение от инициатора
+	RECEIVE TOP(1)
+		@TargetDlgHandle = Conversation_Handle,
+		@Message = Message_Body,
+		@MessageType = Message_Type_Name
+	FROM dbo.TargetQueueWWI; 
+
+	SELECT @Message;
+
+	SET @xml = CAST(@Message AS XML);
+
+	SELECT @InvoiceID = R.Iv.value('@InvoiceID','INT')
+	FROM @xml.nodes('/RequestMessage/Inv') as R(Iv);
+
+	IF EXISTS (SELECT * FROM Sales.Invoices WHERE InvoiceID = @InvoiceID)
+	BEGIN
+		UPDATE Sales.Invoices
+		SET InvoiceConfirmedForProcessing = GETUTCDATE()
+		WHERE InvoiceId = @InvoiceID;
+	END;
+	
+	SELECT @Message AS ReceivedRequestMessage, @MessageType; 
+	
+	-- Confirm and Send a reply
+	IF @MessageType=N'//WWI/SB/RequestMessage'
+	BEGIN
+		SET @ReplyMessage =N'<ReplyMessage> Message received</ReplyMessage>'; 
+	
+		SEND ON CONVERSATION @TargetDlgHandle
+		MESSAGE TYPE
+		[//WWI/SB/ReplyMessage]
+		(@ReplyMessage);
+		END CONVERSATION @TargetDlgHandle;
+	END 
+	
+	SELECT @ReplyMessage AS SentReplyMessage; 
+
+	COMMIT TRAN;
+END
+
+--6 Обработка сообщений на инициаторе (повесили трубку)
+CREATE PROCEDURE Sales.ConfirmInvoice
+AS
+BEGIN
+	--Получение ответного сообщения от  Target.	
+	DECLARE @InitiatorReplyDlgHandle UNIQUEIDENTIFIER,
+			@ReplyReceivedMessage NVARCHAR(1000) 
+	
+	BEGIN TRAN; 
+
+		RECEIVE TOP(1)
+			@InitiatorReplyDlgHandle=Conversation_Handle
+			,@ReplyReceivedMessage=Message_Body
+		FROM dbo.InitiatorQueueWWI; 
+		
+		END CONVERSATION @InitiatorReplyDlgHandle; 
+		
+		SELECT @ReplyReceivedMessage AS ReceivedRepliedMessage; 
+
+	COMMIT TRAN; 
+END
+
+--7 Очереди без процедур обработки
+ALTER QUEUE [dbo].[InitiatorQueueWWI] WITH STATUS = ON , RETENTION = OFF , POISON_MESSAGE_HANDLING (STATUS = OFF) 
+	, ACTIVATION (   STATUS = OFF ,
+        PROCEDURE_NAME = Sales.ConfirmInvoice, MAX_QUEUE_READERS = 1, EXECUTE AS OWNER) ; 
+
+GO
+ALTER QUEUE [dbo].[TargetQueueWWI] WITH STATUS = ON , RETENTION = OFF , POISON_MESSAGE_HANDLING (STATUS = OFF)
+	, ACTIVATION (  STATUS = OFF ,
+        PROCEDURE_NAME = Sales.GetNewInvoice, MAX_QUEUE_READERS = 1, EXECUTE AS OWNER) ; 
+
+GO
+
+
+--8 Смотрим конкретное сообщение
+SELECT InvoiceId, InvoiceConfirmedForProcessing, *
+FROM Sales.Invoices
+WHERE InvoiceID = 61231;
+
+--Send message
+EXEC Sales.SendNewInvoice
+	@invoiceId = 61231;
+
+SELECT CAST(message_body AS XML),*
+FROM dbo.TargetQueueWWI;
+
+SELECT CAST(message_body AS XML),*
+FROM dbo.InitiatorQueueWWI;
+
+--Target
+EXEC Sales.GetNewInvoice;
+
+--Initiator
+EXEC Sales.ConfirmInvoice;
+
+/* смотрим обработку сообщений
+SELECT conversation_handle, is_initiator, s.name as 'local service', far_service, sc.name  'contract', ce.state_desc
+FROM sys.conversation_endpoints ce
+LEFT JOIN sys.services s
+ON ce.service_id = s.service_id
+LEFT JOIN sys.service_contracts sc
+ON ce.service_contract_id = sc.service_contract_id
+ORDER BY conversation_handle;
+
+ */
