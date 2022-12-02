@@ -33,7 +33,7 @@ CREATE PROCEDURE CB_PriceForCustomer
 (@CastCustomerID int)
 AS
 begin
-select SUM(ExtendedPrice) as suminv, cus.CustomerName from Sales.InvoiceLines invl with (nolock)
+select SUM(ExtendedPrice) as suminv from Sales.InvoiceLines invl with (nolock)
 		inner join Sales.Invoices inv on inv.InvoiceID = invl.InvoiceID
 		inner join Sales.Customers cus on cus.CustomerID = inv.CustomerID
 		where inv.CustomerID = @CastCustomerID
