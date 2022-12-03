@@ -1,0 +1,31 @@
+EXEC sp_configure 'show advanced options', 1;
+GO
+RECONFIGURE;
+GO
+
+EXEC sp_configure 'clr enabled', 1;
+EXEC sp_configure 'clr strict security', 0;
+GO
+-- clr strict security 
+-- 1 (Enabled): заставляет Database Engine игнорировать сведения PERMISSION_SET о сборках 
+-- и всегда интерпретировать их как UNSAFE. По умолчанию, начиная с SQL Server 2017.
+
+RECONFIGURE;
+GO
+
+
+--Взяла пример с сайта https://habr.com/ru/post/88396/
+--Скопировала код в новый проект, нажала Собрать решение - получила готовую dll, которую и загружаю дальше
+create assembly ClrFunction from 'C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\bin\Debug\ClrDemo.dll'
+go
+
+CREATE FUNCTION [dbo].SplitStringCLR(@text [nvarchar](max), @delimiter [nchar](1))
+RETURNS TABLE (
+part nvarchar(max),
+ID_ODER int
+) WITH EXECUTE AS CALLER
+AS
+EXTERNAL NAME CLRFunction.UserDefinedFunctions.SplitString
+go
+
+select * from SplitStringCLR('Life is a constant learning', ' ');
