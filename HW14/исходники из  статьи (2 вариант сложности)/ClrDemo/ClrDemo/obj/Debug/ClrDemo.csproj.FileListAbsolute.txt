@@ -1,0 +1,6 @@
+C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\bin\Debug\ClrDemo.dll
+C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\bin\Debug\ClrDemo.pdb
+C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\obj\Debug\ClrDemo.csproj.AssemblyReference.cache
+C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\obj\Debug\ClrDemo.csproj.CoreCompileInputs.cache
+C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\obj\Debug\ClrDemo.dll
+C:\Users\NEXT\source\repos\ClrDemo\ClrDemo\obj\Debug\ClrDemo.pdb
