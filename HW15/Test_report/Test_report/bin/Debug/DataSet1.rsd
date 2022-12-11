@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SharedDataSet xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/shareddatasetdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <DataSet Name="DataSet1">
+    <Query>
+      <DataSourceReference>DataSource1</DataSourceReference>
+      <CommandText>SELECT        Sales.Customers.CustomerName, Sales.Invoices.InvoiceDate, Sales.Invoices.CustomerPurchaseOrderNumber
+FROM            Sales.Orders INNER JOIN
+                         Sales.OrderLines ON Sales.Orders.OrderID = Sales.OrderLines.OrderID INNER JOIN
+                         Sales.Customers ON Sales.Orders.CustomerID = Sales.Customers.CustomerID INNER JOIN
+                         Sales.Invoices ON Sales.Orders.OrderID = Sales.Invoices.OrderID AND Sales.Customers.CustomerID = Sales.Invoices.CustomerID AND Sales.Customers.CustomerID = Sales.Invoices.BillToCustomerID INNER JOIN
+                         Sales.InvoiceLines INNER JOIN
+                         Sales.InvoiceLines AS InvoiceLines_1 ON Sales.InvoiceLines.InvoiceLineID = InvoiceLines_1.InvoiceLineID ON Sales.Invoices.InvoiceID = Sales.InvoiceLines.InvoiceID AND Sales.Invoices.InvoiceID = InvoiceLines_1.InvoiceID</CommandText>
+    </Query>
+    <Fields>
+      <Field Name="CustomerName">
+        <DataField>CustomerName</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+      <Field Name="InvoiceDate">
+        <DataField>InvoiceDate</DataField>
+        <rd:TypeName>System.DateTime</rd:TypeName>
+      </Field>
+      <Field Name="CustomerPurchaseOrderNumber">
+        <DataField>CustomerPurchaseOrderNumber</DataField>
+        <rd:TypeName>System.String</rd:TypeName>
+      </Field>
+    </Fields>
+  </DataSet>
+</SharedDataSet>
